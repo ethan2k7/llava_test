@@ -1,0 +1,71 @@
+import json
+import os
+import argparse
+from llava.serve.cli import chat_with_image
+
+
+def run_mathvista(model_path, mathvista_json, image_dir, output_json):
+    # Load MathVista dataset
+    with open(mathvista_json, "r") as f:
+        dataset = json.load(f)
+
+    results = []
+    for item in dataset:
+        image_path = os.path.join(image_dir, item["image"])
+        question = item["question"]
+
+        # Handle multiple-choice if available
+        if "choices" in item and isinstance(item["choices"], list) and len(item["choices"]) > 0:
+            question_with_choices = question + "\nChoices:\n"
+            for i, choice in enumerate(item["choices"]):
+                question_with_choices += f"{chr(65+i)}. {choice}\n"
+            question = question_with_choices.strip()
+
+        try:
+            # Run inference with LLaVA
+            answer = chat_with_image(
+                model_path=model_path,
+                image_file=image_path,
+                prompt=question
+            )
+        except Exception as e:
+            answer = f"ERROR: {e}"
+
+        results.append({
+            "id": item.get("id", None),
+            "question": item["question"],
+            "choices": item.get("choices", None),
+            "ground_truth": item.get("answer", None),
+            "prediction": answer
+        })
+
+        print(f"Processed {item.get('id', 'UNKNOWN')} → Pred: {answer}")
+
+    # Save predictions
+    with open(output_json, "w") as f:
+        json.dump(results, f, indent=2)
+
+    print(f"\n✅ Saved predictions to {output_json}")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model-path", type=str, required=True,
+                        help="Path to LLaVA model (e.g., liuhaotian/llava-v1.5-7b)")
+    parser.add_argument("--mathvista-json", type=str,
+                        default="MathVista/data/mathvista_test.json",
+                        help="Path to MathVista JSON file")
+    parser.add_argument("--image-dir", type=str,
+                        default="MathVista/data/images",
+                        help="Directory where MathVista images are stored")
+    parser.add_argument("--output-json", type=str,
+                        default="llava_mathvista_results.json",
+                        help="Where to save predictions")
+
+    args = parser.parse_args()
+
+    run_mathvista(
+        model_path=args.model_path,
+        mathvista_json=args.mathvista_json,
+        image_dir=args.image_dir,
+        output_json=args.output_json
