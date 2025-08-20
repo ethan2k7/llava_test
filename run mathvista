@@ -1,0 +1,5 @@
+python run_mathvista.py \
+  --model-path liuhaotian/llava-v1.5-7b \
+  --mathvista-json MathVista/data/mathvista_test.json \
+  --image-dir MathVista/data/images \
+  --output-json llava_mathvista_results.json
