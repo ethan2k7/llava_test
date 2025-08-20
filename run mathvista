@@ -3,3 +3,9 @@ python run_mathvista.py \
   --mathvista-json MathVista/data/mathvista_test.json \
   --image-dir MathVista/data/images \
   --output-json llava_mathvista_results.json
+
+#execute
+cd MathVista
+python evaluation.py \
+  --pred ../LLaVA/llava_mathvista_results.json \
+  --gt data/mathvista_test.json
